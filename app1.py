@@ -7,7 +7,6 @@ import tensorflow as tf
 import torch
 from torchvision import transforms
 from tensorflow.keras.applications.mobilenet_v3 import preprocess_input
-from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
