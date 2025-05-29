@@ -1,20 +1,20 @@
-# Use a Python 3.10 base image
 FROM python:3.11
 
-# Set working dir
+# Set working directory
 WORKDIR /app
 
-# Copy only what’s needed
+# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application files
 COPY app1.py .
 COPY leafNetV3_model.tflite .
 COPY converted_model.tflite .
 
-# Expose the port Flask will run on
-ENV PORT 8080
+# Set environment variable for Cloud Run port
+ENV PORT=8080
 EXPOSE 8080
 
-# Run your Flask app
-CMD ["python", "app1.py"]
+# Run the Flask app using Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app1:app"]
