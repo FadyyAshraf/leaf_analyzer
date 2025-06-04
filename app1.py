@@ -6,6 +6,7 @@ import io
 import os
 from tensorflow.keras.applications.mobilenet_v3 import preprocess_input
 
+
 app = Flask(__name__)
 
 # Where your .tflite files live
