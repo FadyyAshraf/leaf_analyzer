@@ -20,4 +20,4 @@ EXPOSE 8080
 # Run the Flask app using Gunicorn
 # CMD ["python", "app1.py"]
 # CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "app1:app"]
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app1:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:080", "app1:app"]
