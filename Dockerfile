@@ -1,4 +1,4 @@
-FROM python:3.11
+FROM python:3.9-slim
 
 # Set working directory
 WORKDIR /app
@@ -18,4 +18,5 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Run the Flask app using Gunicorn
-CMD ["python", "app1.py"]
+# CMD ["python", "app1.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "app1:app"]
