@@ -14,7 +14,6 @@ COPY converted_model.tflite .
 COPY mobilevit_model17.pt .
 
 # Set environment variable for Cloud Run port
-ENV PORT=8080
 EXPOSE 8080
 
 # Run the Flask app using Gunicorn
