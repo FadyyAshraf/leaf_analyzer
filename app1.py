@@ -1,5 +1,8 @@
 from flask import Flask, request, jsonify
 import tensorflow as tf
+import torch
+import torch.nn.functional as F
+import torchvision.transforms as transforms
 import numpy as np
 from PIL import Image
 import io
@@ -8,50 +11,57 @@ from tensorflow.keras.applications.mobilenet_v3 import preprocess_input
 
 app = Flask(__name__)
 
-# Where your .tflite files live
+# Base paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-LEAF_MODEL_PATH    = os.path.join(BASE_DIR, "leafNetV3_model.tflite")
-DISEASE_MODEL_PATH = os.path.join(BASE_DIR, "mobilevit_model17.pt")
+LEAF_MODEL_PATH = os.path.join(BASE_DIR, "leafNetV3_model.tflite")
+MOBILEVIT_MODEL_PATH = os.path.join(BASE_DIR, "mobilevit_model17.pt")
 
-# Load both TFLite interpreters once at startup
+# Load TFLite interpreter for leaf detection
 leaf_model = tf.lite.Interpreter(model_path=LEAF_MODEL_PATH)
 leaf_model.allocate_tensors()
 
-disease_model = tf.lite.Interpreter(model_path=DISEASE_MODEL_PATH)
-disease_model.allocate_tensors()
+# Load MobileViT PyTorch model
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+mobilevit_model = torch.load(MOBILEVIT_MODEL_PATH, map_location=device, weights_only=False)
+mobilevit_model.eval()
 
+# Preprocessing for MobileNetV3 leaf model
 def preprocess_image_mobilenet(image_bytes, target_size):
-    """Resize, convert to array, expand dims and apply MobileNetV3 preprocess_input."""
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img = img.resize(target_size)  # (224,224)
+    img = img.resize(target_size)
     arr = np.asarray(img, dtype=np.float32)
-    arr = np.expand_dims(arr, axis=0)        # [1,224,224,3]
-    arr = preprocess_input(arr)              # scales to [-1,1] exactly like Keras MobileNetV3
+    arr = np.expand_dims(arr, axis=0)
+    arr = preprocess_input(arr)
     return arr
 
+# Preprocessing for MobileViT
+mean = np.array([0.5, 0.5, 0.5])
+std = np.array([0.25, 0.25, 0.25])
+common_transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean, std),
+])
+def preprocess_image_mobilevit(image_bytes):
+    img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+    return common_transform(img).unsqueeze(0).to(device)
+
+# Inference helpers
 def run_tflite(interpreter, input_data):
     inp = interpreter.get_input_details()[0]
     out = interpreter.get_output_details()[0]
     interpreter.set_tensor(inp["index"], input_data)
     interpreter.invoke()
-    return interpreter.get_tensor(out["index"])[0]  # drop batch dim
+    return interpreter.get_tensor(out["index"])[0]
 
-def preprocess_image(image_bytes, input_shape):
-    img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-    img = img.resize((input_shape[1], input_shape[2]))
-    img_array = np.array(img).astype(np.float32)
-    img_array = (img_array / 127.5) - 1.0
-    input_data = np.expand_dims(img_array, axis=0)
-    return input_data
+def run_mobilevit(image_tensor):
+    with torch.no_grad():
+        outputs = mobilevit_model(image_tensor)
+        probs = F.softmax(outputs, dim=1)
+        return probs.cpu().numpy()[0]
 
-def run_inference(interpreter, input_data):
-    input_details = interpreter.get_input_details()
-    output_details = interpreter.get_output_details()
-    interpreter.set_tensor(input_details[0]['index'], input_data)
-    interpreter.invoke()
-    output_data = interpreter.get_tensor(output_details[0]['index'])
-    return output_data
-
+# Flask route
 @app.route("/analyze", methods=["POST"])
 def analyze():
     if "image" not in request.files:
@@ -59,33 +69,24 @@ def analyze():
 
     image_bytes = request.files["image"].read()
 
-    # --- 1) Leaf Detection ---
-    leaf_shape = leaf_model.get_input_details()[0]["shape"]   # e.g. [1,224,224,3]
+    # Leaf Detection
+    leaf_shape = leaf_model.get_input_details()[0]["shape"]
     leaf_input = preprocess_image_mobilenet(image_bytes, (leaf_shape[2], leaf_shape[1]))
-    leaf_output = run_tflite(leaf_model, leaf_input)          # e.g. [p_leaf, p_nonleaf]
-
-    leaf_class      = int(np.argmax(leaf_output))             # 0 or 1
+    leaf_output = run_tflite(leaf_model, leaf_input)
+    leaf_class = int(np.argmax(leaf_output))
     leaf_confidence = float(leaf_output[leaf_class])
 
-    # class 0 == “leaf” according to your mapping
     if leaf_class != 0:
         return jsonify({
-            "success":     True,
-            "stage":       "leaf_detection",
-            "isLeaf":      False,
-            "confidence":  leaf_confidence,
-            "message":     "This is not a leaf",
-            "results":     []
+            "success":    True,
+            "stage":      "leaf_detection",
+            "isLeaf":     False,
+            "confidence": leaf_confidence,
+            "message":    "This is not a leaf",
+            "results":    []
         })
 
-    # --- 2) Disease Detection (only if leaf) ---
-    # Disease detection preprocessing and inference (only if leaf)
-    disease_input_details = disease_model.get_input_details()[0]
-    disease_input_shape = disease_input_details['shape']
-    disease_input = preprocess_image(image_bytes, disease_input_shape)
-    disease_output = run_inference(disease_model, disease_input)[0]
-
-
+    # Disease Classification (MobileViT only)
     disease_labels = [
         "Apple: Apple scab", "Apple: Black rot", "Apple: Cedar apple rust",
         "Apple: healthy", "Grape: Esca (Black Measles)", "Pepper-bell: Bacterial-spot",
@@ -95,27 +96,23 @@ def analyze():
         "Tomato: Leaf Mold", "Tomato: healthy"
     ]
 
-    # Top-5 by confidence (descending)
-    top_idxs = np.argsort(disease_output)[::-1][:5]
-    threshold = 0.75
-    disease_results = []
-    for idx in top_idxs:
-        conf = float(disease_output[idx])
-        if conf >= threshold:
-            disease_results.append({"label": disease_labels[idx], "confidence": conf})
+    image_tensor = preprocess_image_mobilevit(image_bytes)
+    mobilevit_output = run_mobilevit(image_tensor)
 
-    # If none pass threshold, at least return the single top
-    if not disease_results:
-        top = top_idxs[0]
-        disease_results.append({"label": disease_labels[top], "confidence": float(disease_output[top])})
+    top1_idx = int(np.argmax(mobilevit_output))
+    top1_conf = float(mobilevit_output[top1_idx])
+    label = disease_labels[top1_idx]
 
     return jsonify({
-        "success":        True,
-        "stage":          "disease_detection",
-        "isLeaf":         True,
+        "success":         True,
+        "stage":           "disease_detection",
+        "isLeaf":          True,
         "leaf_confidence": leaf_confidence,
-        "results":        disease_results,
-        "message":        "Analysis complete"
+        "results": [{
+            "label":      label,
+            "confidence": top1_conf
+        }],
+        "message": "Analysis complete"
     })
 
 if __name__ == "__main__":
