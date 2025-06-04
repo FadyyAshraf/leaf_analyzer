@@ -25,8 +25,8 @@ disease_model = tf.lite.Interpreter(model_path=DISEASE_MODEL_PATH)
 disease_model.allocate_tensors()
 
 # Load MobileViT PyTorch model with weights_only=False
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mobilevit_model = torch.load(MOBILEVIT_MODEL_PATH, map_location=device, weights_only=False)
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+mobilevit_model = torch.load(MOBILEVIT_MODEL_PATH, map_location="cpu", weights_only=False)
 mobilevit_model.eval()
 
 # Preprocessing for MobileNetV3
@@ -153,9 +153,9 @@ def analyze():
         "message":         "Analysis complete"
     })
 
-# if __name__ == "__main__":
-#     app.run(host="0.0.0.0", port=8080)
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=8080)
+
+# if __name__ == "__main__":
+#     port = int(os.environ.get("PORT", 8080))
+#     app.run(host="0.0.0.0", port=port)
