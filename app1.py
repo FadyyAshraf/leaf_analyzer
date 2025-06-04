@@ -169,5 +169,5 @@ def analyze():
         "message":         "Analysis complete"
     })
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     app.run(host="0.0.0.0", port=8080)
