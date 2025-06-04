@@ -24,26 +24,10 @@ leaf_model.allocate_tensors()
 disease_model = tf.lite.Interpreter(model_path=DISEASE_MODEL_PATH)
 disease_model.allocate_tensors()
 
-# Load MobileViT PyTorch model
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mobilevit_model = torch.load(MOBILEVIT_MODEL_PATH, map_location=device)
+# Load MobileViT PyTorch model with weights_only=False
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+mobilevit_model = torch.load(MOBILEVIT_MODEL_PATH, map_location="cpu", weights_only=False)
 mobilevit_model.eval()
-
-# Attempt TorchScript compilation (Trace or Script)
-print("Attempting TorchScript compilation...")
-example_input = torch.randn(1, 3, 224, 224).to(device) # Example input for tracing
-try:
-    traced_model = torch.jit.trace(mobilevit_model, example_input)
-    mobilevit_model = traced_model # Use the traced model for inference
-    print("Model successfully traced with torch.jit.trace")
-except Exception as e:
-    print(f"torch.jit.trace failed: {e}. Attempting torch.jit.script...")
-    try:
-        scripted_model = torch.jit.script(mobilevit_model)
-        mobilevit_model = scripted_model # Use the scripted model
-        print("Model successfully scripted with torch.jit.script")
-    except Exception as e_script:
-        print(f"torch.jit.script also failed: {e_script}. Using original eager model.")
 
 # Preprocessing for MobileNetV3
 def preprocess_image_mobilenet(image_bytes, target_size):
@@ -91,7 +75,7 @@ def run_inference(interpreter, input_data):
     return interpreter.get_tensor(output_details[0]['index'])
 
 def run_mobilevit(image_tensor):
-    with torch.inference_mode():
+    with torch.no_grad():
         outputs = mobilevit_model(image_tensor)
         probs = F.softmax(outputs, dim=1)
         return probs.cpu().numpy()[0]  # [num_classes]
@@ -169,5 +153,5 @@ def analyze():
         "message":         "Analysis complete"
     })
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
