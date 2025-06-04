@@ -32,7 +32,6 @@ pyparsing
 pyserial
 python-dateutil
 pytz
-pywin32
 PyYAML
 reedsolo
 requests
