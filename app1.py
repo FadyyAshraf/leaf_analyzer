@@ -24,9 +24,9 @@ leaf_model.allocate_tensors()
 disease_model = tf.lite.Interpreter(model_path=DISEASE_MODEL_PATH)
 disease_model.allocate_tensors()
 
-# Load MobileViT PyTorch model
+# Load MobileViT PyTorch model with weights_only=False
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mobilevit_model = torch.load(MOBILEVIT_MODEL_PATH, map_location=device)
+mobilevit_model = torch.load(MOBILEVIT_MODEL_PATH, map_location=device, weights_only=False)
 mobilevit_model.eval()
 
 # Preprocessing for MobileNetV3
