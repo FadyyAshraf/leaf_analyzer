@@ -15,7 +15,7 @@ app = Flask(_name_)
 BASE_DIR = os.path.dirname(os.path.abspath(_file_))
 LEAF_MODEL_PATH    = os.path.join(BASE_DIR, "leafNetV3_model.tflite")
 DISEASE_MODEL_PATH = os.path.join(BASE_DIR, "converted_model.tflite")
-MOBILEVIT_MODEL_PATH = os.path.join(BASE_DIR, "mobilevit_model.pt")
+MOBILEVIT_MODEL_PATH = os.path.join(BASE_DIR, "mobilevit_model17.pt")
 
 # Load TFLite interpreters
 leaf_model = tf.lite.Interpreter(model_path=LEAF_MODEL_PATH)
