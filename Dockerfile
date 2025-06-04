@@ -1,4 +1,4 @@
-FROM python:3.11
+FROM python:3.10
 
 # Set working directory
 WORKDIR /app
@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app1.py .
 COPY leafNetV3_model.tflite .
 COPY converted_model.tflite .
-COPY mobilevit_model17.pt .
+#COPY mobilevit_model17.pt .
 
 # Set environment variable for Cloud Run port
 ENV PORT=8080
