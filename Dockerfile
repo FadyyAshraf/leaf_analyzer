@@ -1,5 +1,5 @@
 # Use a minimal and compatible Python base image
-FROM 3.9
+FROM 3.10-slim
 # Set environment variables for best practice
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
