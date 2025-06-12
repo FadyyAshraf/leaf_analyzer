@@ -1,32 +1,38 @@
-```yaml
-# Instructions for Google Cloud Build
+# ==============================================================================
+# INSTRUCTIONS FOR GOOGLE CLOUD BUILD
+# ==============================================================================
+
 steps:
-  # Step 1: Build the Docker image
-  # This command uses the Dockerfile in your repository to build an image.
-  # We tag it with the name of your Artifact Registry repository.
+  # --- Step 1: Build the Docker Image ---
+  # This step finds your Dockerfile and uses it to build a container image.
+  # The '-t' flag tags the image with a name for easy reference.
+  # We are naming it to match the location in Google Artifact Registry.
+  # '$PROJECT_ID' is a variable automatically replaced by Cloud Build.
+  # The final '.' tells Docker to use the current directory as the build context.
   - name: 'gcr.io/cloud-builders/docker'
     args:
-      [
-        'build',
-        '-t',
-        'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest',
-        '.',
-      ]
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest'
+      - '.'
 
-  # Step 2: Push the Docker image to Google Artifact Registry
-  # Artifact Registry is the recommended place to store your images.
+  # --- Step 2: Push the Image to Artifact Registry ---
+  # This step uploads the image you just built to the Artifact Registry
+  # repository you created as a prerequisite.
   - name: 'gcr.io/cloud-builders/docker'
     args:
-      [
-        'push',
-        'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest',
-      ]
+      - 'push'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest'
 
-# Specify the image that was just built and pushed.
+# --- Final Image ---
+# This section tells Cloud Build what image was produced by this build.
 images:
   - 'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest'
 
-# This option block fixes the logging error you were seeing.
-# It tells Cloud Build to use a default bucket for logs in the build's region.
+# --- Build Options ---
+# This section configures how the build itself runs.
 options:
+  # This line is the specific fix for the error you received.
+  # It tells Cloud Build to automatically use a default, managed
+  # logs bucket in the same region as the build.
   default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
