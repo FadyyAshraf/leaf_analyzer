@@ -27,7 +27,7 @@ steps:
 # --- Final Image ---
 # This section tells Cloud Build what image was produced by this build.
 images:
-  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/leaf-analyzer-app:latest'
 
 # --- Build Options ---
 # This section configures how the build itself runs.
