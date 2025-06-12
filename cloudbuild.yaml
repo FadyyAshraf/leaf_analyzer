@@ -13,7 +13,7 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/leaf-analyzer-app:latest'
       - '.'
 
   # --- Step 2: Push the Image to Artifact Registry ---
@@ -22,7 +22,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/leaf-analyzer-app:latest'
 
 # --- Final Image ---
 # This section tells Cloud Build what image was produced by this build.
