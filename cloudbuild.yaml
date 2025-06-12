@@ -1,0 +1,32 @@
+```yaml
+# Instructions for Google Cloud Build
+steps:
+  # Step 1: Build the Docker image
+  # This command uses the Dockerfile in your repository to build an image.
+  # We tag it with the name of your Artifact Registry repository.
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest',
+        '.',
+      ]
+
+  # Step 2: Push the Docker image to Google Artifact Registry
+  # Artifact Registry is the recommended place to store your images.
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest',
+      ]
+
+# Specify the image that was just built and pushed.
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/leaf-analyzer-repo/leaf-analyzer-app:latest'
+
+# This option block fixes the logging error you were seeing.
+# It tells Cloud Build to use a default bucket for logs in the build's region.
+options:
+  default_logs_bucket_behavior: 'REGIONAL_USER_OWNED_BUCKET'
