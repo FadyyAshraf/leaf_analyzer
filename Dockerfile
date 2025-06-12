@@ -1,5 +1,5 @@
 # Use a minimal and compatible Python base image
-FROM python:3.10-slim
+FROM python:3.13
 
 # Set environment variables for best practice
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -13,7 +13,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install dependencies with increased timeout and clean cache
-RUN pip install --no-cache-dir --default-timeout=1000 -r requirements.txt
+RUN pip install --no-cache-dir --default-timeout=100000 -r requirements.txt
 
 # Copy application and model files
 COPY app1.py .
