@@ -6,12 +6,11 @@ import io
 import os
 from tensorflow.keras.applications.mobilenet_v3 import preprocess_input
 
-app = Flask(_name_)
-
+app = Flask(__name__)
 
 
 # Where your .tflite files
-BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LEAF_MODEL_PATH    = os.path.join(BASE_DIR, "leafNetV3_model.tflite")
 DISEASE_MODEL_PATH = os.path.join(BASE_DIR, "converted_model.tflite")
 
@@ -120,5 +119,5 @@ def analyze():
         "message":        "Analysis complete"
     })
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
